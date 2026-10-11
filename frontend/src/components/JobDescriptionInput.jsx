@@ -12,6 +12,16 @@ Requirements:
 - Good knowledge of Data Structures and Object-Oriented Programming.`
   },
   {
+    label: 'Python Backend Developer',
+    text: `Job Title: Junior Backend Engineer (Python)
+Requirements:
+- Proficiency in Python and modern backend frameworks like FastAPI or Django.
+- Experience creating RESTful APIs and querying SQL databases (PostgreSQL, MySQL).
+- Knowledge of version control with Git and GitHub.
+- Understanding of Linux environments and containerization with Docker.
+- Solid foundation in DBMS, Operating Systems, and System Design.`
+  },
+  {
     label: 'AI / ML Engineer',
     text: `Job Title: Associate Machine Learning Engineer
 Requirements:
@@ -22,24 +32,24 @@ Requirements:
 - Strong grounding in Algorithms and Data Structures.`
   },
   {
-    label: 'Backend Developer (Python)',
-    text: `Job Title: Junior Backend Engineer
+    label: 'Data Analyst',
+    text: `Job Title: Associate Data Analyst
 Requirements:
-- Proficiency in Python and modern backend frameworks like FastAPI or Django.
-- Experience creating RESTful APIs and querying SQL databases (PostgreSQL, MySQL).
-- Knowledge of version control with Git and GitHub.
-- Understanding of Linux environments and containerization with Docker.
-- Solid foundation in DBMS, Operating Systems, and System Design.`
+- Strong foundations in SQL for database querying and data extraction.
+- Proficiency in Python with data manipulation libraries including Pandas and NumPy.
+- Experience building dashboards and reports using Tableau, Power BI, or Data Visualization tools.
+- Understanding of Relational Databases (PostgreSQL, MySQL) and Data Warehousing concepts.
+- Solid grounding in Statistics, Mathematics, and Data Cleaning methodologies.`
   }
 ];
 
 export default function JobDescriptionInput({ value, onChange, onClear }) {
   return (
-    <div className="card" style={{ marginTop: '1.5rem' }}>
+    <div className="card" style={{ marginTop: '1.25rem' }}>
       <div className="card-header">
         <div className="card-title">
           <span className="card-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
               <polyline points="14 2 14 8 20 8" />
               <line x1="16" y1="13" x2="8" y2="13" />
@@ -55,7 +65,7 @@ export default function JobDescriptionInput({ value, onChange, onClear }) {
             type="button"
             className="preset-btn"
             onClick={onClear}
-            style={{ color: '#fb7185' }}
+            style={{ color: 'var(--danger-text)' }}
           >
             Clear Text
           </button>
@@ -63,8 +73,8 @@ export default function JobDescriptionInput({ value, onChange, onClear }) {
       </div>
 
       <div className="preset-pills">
-        <span style={{ fontSize: '0.76rem', color: 'var(--text-muted)', alignSelf: 'center' }}>
-          Quick Presets:
+        <span style={{ fontSize: '0.76rem', color: 'var(--text-muted)', alignSelf: 'center', fontWeight: 600 }}>
+          Role Presets:
         </span>
         {SAMPLE_PRESETS.map((preset, idx) => (
           <button
@@ -72,6 +82,7 @@ export default function JobDescriptionInput({ value, onChange, onClear }) {
             type="button"
             className="preset-btn"
             onClick={() => onChange(preset.text)}
+            title={`Populate requirements for ${preset.label}`}
           >
             + {preset.label}
           </button>
@@ -81,12 +92,12 @@ export default function JobDescriptionInput({ value, onChange, onClear }) {
       <div className="textarea-wrapper">
         <textarea
           className="jd-textarea"
-          placeholder="Paste the target job description or requirements here..."
+          placeholder="Paste the target job description or requirements here (you can edit any preset)..."
           value={value}
           onChange={(e) => onChange(e.target.value)}
         />
         <div className="jd-footer">
-          <span>{value.length} characters • {value ? value.trim().split(/\s+/).length : 0} words</span>
+          <span>{value.length} characters • {value ? value.trim().split(/\s+/).filter(Boolean).length : 0} words</span>
           <span>Tip: Includes languages, frameworks, cloud, and CS fundamentals</span>
         </div>
       </div>

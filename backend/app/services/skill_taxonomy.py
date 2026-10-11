@@ -28,7 +28,8 @@ SKILL_TAXONOMY: Dict[str, List[str]] = {
         "Computer Vision", "Hugging Face", "Transformers", "LLMs",
         "Large Language Models", "Generative AI", "RAG", "LangChain",
         "Data Analysis", "Data Visualization", "Matplotlib", "Seaborn",
-        "Feature Engineering", "Model Evaluation"
+        "Feature Engineering", "Model Evaluation", "Tableau", "Power BI",
+        "Data Cleaning", "Data Warehousing", "Statistics"
     ],
     "Web & Backend Frameworks": [
         "FastAPI", "Flask", "Django", "React", "Next.js", "Node.js", "Express",
@@ -112,6 +113,13 @@ SKILL_ALIASES: Dict[str, str] = {
     "seaborn": "Seaborn",
     "data analysis": "Data Analysis",
     "data visualization": "Data Visualization",
+    "tableau": "Tableau",
+    "power bi": "Power BI",
+    "powerbi": "Power BI",
+    "statistics": "Statistics",
+    "data cleaning": "Data Cleaning",
+    "data warehousing": "Data Warehousing",
+    "data warehouse": "Data Warehousing",
 
     # Web & Frameworks
     "fastapi": "FastAPI",
