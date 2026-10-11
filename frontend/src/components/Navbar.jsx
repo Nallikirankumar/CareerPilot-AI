@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function Navbar({ backendOnline, theme, onToggleTheme }) {
+export default function Navbar({ backendOnline, theme, onToggleTheme, user, onOpenAuth, onLogout }) {
   return (
     <header className="navbar">
       <div className="brand">
@@ -25,6 +25,36 @@ export default function Navbar({ backendOnline, theme, onToggleTheme }) {
           <span className={`status-dot ${backendOnline ? '' : 'offline'}`} />
           {backendOnline ? 'API Connected' : 'Connecting...'}
         </span>
+
+        {/* User Account / Auth Actions */}
+        {user ? (
+          <div className="nav-user-pill">
+            <span style={{ fontWeight: 600 }}>👤 {user.full_name || user.email.split('@')[0]}</span>
+            {user.target_role && (
+              <span className="nav-user-role">({user.target_role})</span>
+            )}
+            <button
+              type="button"
+              className="btn-nav-logout"
+              onClick={onLogout}
+              title="Sign out of your account"
+            >
+              Sign Out
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            className="btn-nav-auth"
+            onClick={onOpenAuth}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+            Sign In / Register
+          </button>
+        )}
 
         <button
           type="button"

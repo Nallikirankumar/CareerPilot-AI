@@ -199,6 +199,12 @@ SKILL_ALIASES: Dict[str, str] = {
     "cn": "Computer Networks"
 }
 
+# Reverse lookup mapping from canonical skill name to its domain category
+SKILL_TO_CATEGORY: Dict[str, str] = {}
+for category, skills in SKILL_TAXONOMY.items():
+    for skill in skills:
+        SKILL_TO_CATEGORY[skill] = category
+
 
 def get_all_canonical_skills() -> Set[str]:
     """Return all unique canonical skill names."""
@@ -206,3 +212,16 @@ def get_all_canonical_skills() -> Set[str]:
     for cat_skills in SKILL_TAXONOMY.values():
         skills.update(cat_skills)
     return skills
+
+
+def get_skill_category(canonical_name: str) -> str:
+    """
+    Return the domain category for a canonical skill name.
+    Falls back to 'Other Technical' if the skill is not in the predefined taxonomy.
+    """
+    return SKILL_TO_CATEGORY.get(canonical_name, "Other Technical")
+
+
+def get_all_categories() -> List[str]:
+    """Return the ordered list of all domain categories in the taxonomy."""
+    return list(SKILL_TAXONOMY.keys())

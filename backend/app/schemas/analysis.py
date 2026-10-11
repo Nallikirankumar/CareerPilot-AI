@@ -11,8 +11,16 @@ for data coming into and going out of your API. They provide:
 3. Automatic interactive API documentation (Swagger UI at /docs)
 """
 
-from typing import List
+from typing import List, Dict, Optional
 from pydantic import BaseModel, Field
+
+
+class CategoryBreakdown(BaseModel):
+    """Breakdown of skills within a specific taxonomy category."""
+    matched: List[str] = Field(default_factory=list)
+    missing: List[str] = Field(default_factory=list)
+    resume: List[str] = Field(default_factory=list)
+    job_description: List[str] = Field(default_factory=list)
 
 
 class SkillMatchResult(BaseModel):
@@ -35,11 +43,27 @@ class SkillMatchResult(BaseModel):
         ...,
         description="All recognized technical skills required by the job description."
     )
+    required_skills: List[str] = Field(
+        default_factory=list,
+        description="Skills identified specifically as mandatory/required in the job description."
+    )
+    preferred_skills: List[str] = Field(
+        default_factory=list,
+        description="Skills identified as preferred or bonus qualifications in the job description."
+    )
+    categorized_skills: Dict[str, CategoryBreakdown] = Field(
+        default_factory=dict,
+        description="Skills grouped by domain category (e.g. Programming Languages, AI/ML, Cloud)."
+    )
+    evidence_snippets: Dict[str, List[str]] = Field(
+        default_factory=dict,
+        description="Resume text snippets/bullet points where each detected skill was found."
+    )
     match_percentage: float = Field(
         ...,
         ge=0.0,
         le=100.0,
-        description="The explainable match score calculated as (matched / total_jd_skills) * 100."
+        description="The explainable match score calculated as (matched / total_jd_skills) * 100 or weighted."
     )
     methodology: str = Field(
         default="Rule-based keyword and token pattern matching",
@@ -48,6 +72,22 @@ class SkillMatchResult(BaseModel):
     explanation: str = Field(
         ...,
         description="Human-readable breakdown explaining how the match percentage was derived."
+    )
+    engine_mode: str = Field(
+        default="deterministic",
+        description="Indicates analytical engine mode ('deterministic' or 'semantic-hybrid')."
+    )
+    semantic_similarity: Optional[float] = Field(
+        default=None,
+        description="Cosine semantic textual alignment percentage (0-100%)."
+    )
+    semantic_model: Optional[str] = Field(
+        default=None,
+        description="Name of the semantic vector engine used."
+    )
+    shared_context_terms: List[str] = Field(
+        default_factory=list,
+        description="Top shared contextual terms identified between resume and job description."
     )
 
 

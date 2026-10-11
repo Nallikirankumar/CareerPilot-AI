@@ -11,10 +11,24 @@ Key Responsibilities:
 5. Provide consistent, structured HTTP error responses.
 """
 
-from fastapi import FastAPI, File, Form, UploadFile, HTTPException, status
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+import os
+import json
+from contextlib import asynccontextmanager
+from typing import Optional
 
+# Ensure pure-Python fallback for SQLAlchemy in environments with Windows Application Control policies
+os.environ["DISABLE_SQLALCHEMY_CEXT"] = "1"
+
+from fastapi import FastAPI, File, Form, UploadFile, HTTPException, Depends, status
+from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.orm import Session
+
+from app.core.config import settings
+from app.db.session import init_db, get_db
+from app.api import auth, applications, analyses
+from app.api.deps import get_current_user_optional
+from app.models.user import User
+from app.models.analysis import SavedAnalysis
 from app.schemas.analysis import AnalysisResponse, HealthResponse
 from app.services.pdf_parser import (
     extract_text_from_pdf_bytes,
@@ -23,31 +37,38 @@ from app.services.pdf_parser import (
 )
 from app.services.matcher import match_skills
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Initialize database tables on startup
+    init_db()
+    yield
+
+
 app = FastAPI(
-    title="CareerPilot AI - Resume Analyzer API",
+    title=settings.PROJECT_NAME,
     description=(
-        "Backend engine for CareerPilot AI. "
-        "Provides safe in-memory PDF text extraction via PyMuPDF and transparent "
-        "rule-based technical skill matching."
+        "Backend engine for CareerPilot AI 2.0. "
+        "Provides in-memory PDF parsing, explainable skill matching, "
+        "and persistent career development data."
     ),
-    version="1.0.0"
+    version=settings.VERSION,
+    lifespan=lifespan
 )
 
 # CORS Configuration
-# Allows requests from Vite's local dev server (default port 5173)
-origins = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "http://localhost:3000",
-]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=settings.BACKEND_CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include Sub-Routers
+app.include_router(auth.router, prefix=settings.API_V1_STR)
+app.include_router(applications.router, prefix=settings.API_V1_STR)
+app.include_router(analyses.router, prefix=settings.API_V1_STR)
 
 
 @app.get("/api/health", response_model=HealthResponse, tags=["System"])
@@ -75,7 +96,9 @@ def get_health() -> HealthResponse:
 )
 async def analyze_resume(
     file: UploadFile = File(..., description="PDF resume file to analyze"),
-    job_description: str = Form(..., description="Target job description text")
+    job_description: str = Form(..., description="Target job description text"),
+    current_user: Optional[User] = Depends(get_current_user_optional),
+    db: Session = Depends(get_db)
 ) -> AnalysisResponse:
     """
     Analyzes an uploaded PDF resume against a target job description.
@@ -84,8 +107,9 @@ async def analyze_resume(
     1. Validates that job description text is provided and non-empty.
     2. Validates that the uploaded file has a .pdf extension.
     3. Reads file bytes into memory and checks size limit (5MB).
-    4. Parses text safely using PyMuPDF in RAM (no disk persistence).
+    4. Parses text safely using PyMuPDF in RAM (no disk persistence of raw files).
     5. Extracts skills and calculates match percentage using rule-based comparison.
+    6. If the user is authenticated, persists the analysis metadata to the database.
     """
     # 1. Validate Job Description
     clean_jd = job_description.strip() if job_description else ""
@@ -142,6 +166,26 @@ async def analyze_resume(
         if len(extracted_text) > preview_length
         else extracted_text
     )
+
+    # 7. Persist analysis record if the user is authenticated
+    if current_user:
+        try:
+            saved_analysis = SavedAnalysis(
+                user_id=current_user.id,
+                filename=filename,
+                file_size_bytes=len(file_bytes),
+                page_count=page_count,
+                match_percentage=match_result.match_percentage,
+                matched_skills_json=json.dumps(match_result.matched_skills),
+                missing_skills_json=json.dumps(match_result.missing_skills),
+                categorized_skills_json=json.dumps({k: v.model_dump() for k, v in match_result.categorized_skills.items()}),
+                evidence_snippets_json=json.dumps(match_result.evidence_snippets)
+            )
+            db.add(saved_analysis)
+            db.commit()
+        except Exception:
+            # Failure to persist should not break the return payload
+            db.rollback()
 
     return AnalysisResponse(
         success=True,

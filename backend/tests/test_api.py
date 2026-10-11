@@ -59,6 +59,9 @@ def test_analyze_endpoint_valid():
     # 2 out of 3 matched = 66.7%
     assert analysis["match_percentage"] == 66.7
     assert "Rule-based keyword and token pattern matching" in analysis["methodology"]
+    assert "categorized_skills" in analysis
+    assert "evidence_snippets" in analysis
+    assert "Python" in analysis["evidence_snippets"]
 
 
 def test_analyze_endpoint_empty_jd():

@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 
 export default function MatchResults({ result, loading }) {
   const [showExtractedText, setShowExtractedText] = useState(false);
+  const [selectedDomain, setSelectedDomain] = useState('All');
+  const [activeEvidenceSkill, setActiveEvidenceSkill] = useState(null);
 
   if (loading) {
     return (
@@ -9,7 +11,7 @@ export default function MatchResults({ result, loading }) {
         <div className="spinner" style={{ width: '40px', height: '40px', margin: '0 auto 1.5rem', borderWidth: '3px' }} />
         <div className="empty-state-title">Analyzing Resume & Extracting Skills...</div>
         <div className="empty-state-desc">
-          Parsing PDF stream safely via PyMuPDF in RAM and running deterministic taxonomy matching.
+          Parsing PDF stream safely via PyMuPDF in RAM and running deterministic taxonomy matching with evidence harvesting.
         </div>
       </div>
     );
@@ -37,6 +39,10 @@ export default function MatchResults({ result, loading }) {
     missing_skills = [],
     resume_skills = [],
     job_description_skills = [],
+    required_skills = [],
+    preferred_skills = [],
+    categorized_skills = {},
+    evidence_snippets = {},
     match_percentage = 0,
     methodology,
     explanation
@@ -50,6 +56,21 @@ export default function MatchResults({ result, loading }) {
   };
 
   const scoreColor = getScoreColor(match_percentage);
+
+  // Filter skills by selected domain
+  const availableDomains = ['All', ...Object.keys(categorized_skills)];
+
+  const displayedMatched = selectedDomain === 'All'
+    ? matched_skills
+    : categorized_skills[selectedDomain]?.matched || [];
+
+  const displayedMissing = selectedDomain === 'All'
+    ? missing_skills
+    : categorized_skills[selectedDomain]?.missing || [];
+
+  const displayedResume = selectedDomain === 'All'
+    ? resume_skills
+    : categorized_skills[selectedDomain]?.resume || [];
 
   return (
     <div className="results-container">
@@ -71,13 +92,42 @@ export default function MatchResults({ result, loading }) {
               : 'Growth Opportunity'}
           </h3>
           <p className="score-explanation">{explanation}</p>
-          <div className="methodology-tag">
-            Methodology: {methodology}
+          
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.5rem' }}>
+            <span className="methodology-tag">
+              Methodology: {methodology}
+            </span>
+            {required_skills.length > 0 && (
+              <span className="badge badge-status">
+                📌 {required_skills.length} Required
+              </span>
+            )}
+            {preferred_skills.length > 0 && (
+              <span className="badge badge-phase" style={{ background: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24', borderColor: 'rgba(245, 158, 11, 0.3)' }}>
+                ⭐ {preferred_skills.length} Preferred
+              </span>
+            )}
           </div>
         </div>
       </div>
 
-      {/* 2. Skills Breakdowns */}
+      {/* 2. Domain Filter Chips */}
+      {availableDomains.length > 1 && (
+        <div className="filter-chip-bar">
+          {availableDomains.map((domain) => (
+            <button
+              key={domain}
+              type="button"
+              className={`filter-chip ${selectedDomain === domain ? 'active' : ''}`}
+              onClick={() => setSelectedDomain(domain)}
+            >
+              {domain}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* 3. Skills Breakdowns */}
       <div className="skills-section">
         {/* Matched Skills */}
         <div className="skills-group">
@@ -86,23 +136,33 @@ export default function MatchResults({ result, loading }) {
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <polyline points="20 6 9 17 4 12" />
               </svg>
-              Matching Skills ({matched_skills.length})
+              Matching Skills ({displayedMatched.length})
             </span>
             <span className="skills-count count-matched">
-              {matched_skills.length} / {job_description_skills.length} required
+              {displayedMatched.length} / {job_description_skills.length} required
             </span>
           </div>
 
           <div className="skills-grid">
-            {matched_skills.length > 0 ? (
-              matched_skills.map((skill, index) => (
-                <span key={index} className="skill-pill pill-matched">
-                  ✓ {skill}
-                </span>
-              ))
+            {displayedMatched.length > 0 ? (
+              displayedMatched.map((skill, index) => {
+                const hasEvidence = Boolean(evidence_snippets[skill]?.length);
+                return (
+                  <button
+                    key={index}
+                    type="button"
+                    className="skill-pill pill-matched"
+                    style={{ cursor: hasEvidence ? 'pointer' : 'default', border: 'none' }}
+                    onClick={() => hasEvidence && setActiveEvidenceSkill(skill)}
+                    title={hasEvidence ? 'Click to inspect resume evidence citation' : ''}
+                  >
+                    ✓ {skill} {hasEvidence && <span style={{ fontSize: '0.75rem', opacity: 0.8 }}>🔍</span>}
+                  </button>
+                );
+              })
             ) : (
               <span className="empty-skills-msg">
-                No overlapping skills detected between your resume and the target role.
+                No overlapping skills detected in this category.
               </span>
             )}
           </div>
@@ -117,7 +177,7 @@ export default function MatchResults({ result, loading }) {
                 <line x1="12" y1="8" x2="12" y2="12" />
                 <line x1="12" y1="16" x2="12.01" y2="16" />
               </svg>
-              Missing Target Skills ({missing_skills.length})
+              Missing Target Skills ({displayedMissing.length})
             </span>
             <span className="skills-count count-missing">
               Target gaps to prepare
@@ -125,15 +185,15 @@ export default function MatchResults({ result, loading }) {
           </div>
 
           <div className="skills-grid">
-            {missing_skills.length > 0 ? (
-              missing_skills.map((skill, index) => (
+            {displayedMissing.length > 0 ? (
+              displayedMissing.map((skill, index) => (
                 <span key={index} className="skill-pill pill-missing">
                   + {skill}
                 </span>
               ))
             ) : (
               <span className="empty-skills-msg" style={{ color: '#34d399' }}>
-                Awesome! You have all the skills requested in this job description.
+                Awesome! You have all the skills requested in this category.
               </span>
             )}
           </div>
@@ -146,7 +206,7 @@ export default function MatchResults({ result, loading }) {
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
               </svg>
-              All Identified Skills in Resume ({resume_skills.length})
+              All Identified Skills in Resume ({displayedResume.length})
             </span>
             <span className="skills-count count-all">
               from {page_count} page(s)
@@ -154,22 +214,32 @@ export default function MatchResults({ result, loading }) {
           </div>
 
           <div className="skills-grid">
-            {resume_skills.length > 0 ? (
-              resume_skills.map((skill, index) => (
-                <span key={index} className="skill-pill pill-neutral">
-                  {skill}
-                </span>
-              ))
+            {displayedResume.length > 0 ? (
+              displayedResume.map((skill, index) => {
+                const hasEvidence = Boolean(evidence_snippets[skill]?.length);
+                return (
+                  <button
+                    key={index}
+                    type="button"
+                    className="skill-pill pill-neutral"
+                    style={{ cursor: hasEvidence ? 'pointer' : 'default', border: 'none' }}
+                    onClick={() => hasEvidence && setActiveEvidenceSkill(skill)}
+                    title={hasEvidence ? 'Click to inspect resume evidence citation' : ''}
+                  >
+                    {skill} {hasEvidence && <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>🔍</span>}
+                  </button>
+                );
+              })
             ) : (
               <span className="empty-skills-msg">
-                No technical skills recognized in the uploaded resume.
+                No technical skills recognized in this category.
               </span>
             )}
           </div>
         </div>
       </div>
 
-      {/* 3. Collapsible Extracted Resume Text Inspector */}
+      {/* 4. Collapsible Extracted Resume Text Inspector */}
       <div className="text-preview-box">
         <div
           className="text-preview-header"
@@ -194,6 +264,46 @@ export default function MatchResults({ result, loading }) {
           </div>
         )}
       </div>
+
+      {/* 5. Evidence Snippets Modal */}
+      {activeEvidenceSkill && (
+        <div className="evidence-modal-backdrop" onClick={() => setActiveEvidenceSkill(null)}>
+          <div className="evidence-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="evidence-modal-header">
+              <div className="evidence-modal-title">
+                <span style={{ color: 'var(--primary-400)' }}>🔍 Evidence Citation:</span> {activeEvidenceSkill}
+              </div>
+              <button
+                type="button"
+                className="btn-remove"
+                onClick={() => setActiveEvidenceSkill(null)}
+                aria-label="Close evidence modal"
+              >
+                ✕
+              </button>
+            </div>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: 0 }}>
+              The following sentences or bullet points in your resume were matched by the pattern matching engine for <strong>{activeEvidenceSkill}</strong>:
+            </p>
+            <div className="evidence-snippet-list">
+              {evidence_snippets[activeEvidenceSkill]?.map((snippet, idx) => (
+                <div key={idx} className="evidence-snippet-item">
+                  "{snippet}"
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              className="preset-btn"
+              style={{ alignSelf: 'flex-end', color: 'var(--primary-400)' }}
+              onClick={() => setActiveEvidenceSkill(null)}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
