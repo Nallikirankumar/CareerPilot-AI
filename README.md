@@ -1,4 +1,9 @@
-# CareerPilot AI 🚀
+## 🚀 Live Demo
+
+**Try CareerPilot AI here:** [Open CareerPilot AI](https://career-pilot-b6brlvczu-nallikirankumar.vercel.app)
+
+CareerPilot AI is an AI-powered career development platform designed to help users with their career journey.
+
 **AI-Powered Resume Analyzer & Career Preparation Platform**  
 *Phase 1: Deterministic In-Memory PDF Parser & Transparent Rule-Based Skill Matcher*
 
